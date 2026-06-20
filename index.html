@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BiTrud · Аудит агента «Катя»</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+/* ============================================================
+   ПАЛІТРА — міняй кольори тут
+   ============================================================ */
+:root{
+  --bg:#0E1320; --bg2:#161D2C; --bg3:#1E2638;
+  --ink:#EAF0F8; --muted:#94A0B4; --line:rgba(255,255,255,0.09);
+  --accent:#4EA8FF; --crit:#FF5C7A; --warn:#FFB547; --ok:#3FD79A;
+  --font-display:'Manrope',system-ui,sans-serif;
+  --font-body:'Inter',system-ui,sans-serif;
+}
+*{ box-sizing:border-box; margin:0; padding:0; }
+html,body{ height:100%; }
+body{
+  background:
+    radial-gradient(1200px 600px at 85% -10%, rgba(78,168,255,0.10), transparent 60%),
+    radial-gradient(900px 500px at 0% 110%, rgba(63,215,154,0.06), transparent 55%),
+    var(--bg);
+  color:var(--ink); font-family:var(--font-body); overflow:hidden;
+}
+
+/* ВЕРХНЯ ПАНЕЛЬ + ПРОГРЕС */
+.topbar{ position:fixed; top:0; left:0; right:0; z-index:30; display:flex; align-items:center; gap:12px; padding:18px 28px; }
+.brand{ font-family:var(--font-display); font-weight:800; letter-spacing:.04em; font-size:15px; }
+.brand span{ color:var(--accent); }
+.brand small{ display:block; font-weight:500; font-size:11px; color:var(--muted); letter-spacing:.12em; text-transform:uppercase; margin-top:2px; }
+.progress{ position:fixed; top:0; left:0; height:3px; z-index:31; background:linear-gradient(90deg,var(--accent),#8ED0FF); width:0; transition:width .4s ease; }
+
+/* СЛАЙДИ */
+.stage{ position:fixed; inset:0; display:flex; align-items:center; justify-content:center; padding:96px 7vw 110px; }
+.slide{ display:none; width:min(1080px,100%); max-height:100%; overflow-y:auto; animation:fade .5s ease both; }
+.slide.active{ display:block; }
+@keyframes fade{ from{opacity:0; transform:translateY(14px);} to{opacity:1; transform:none;} }
+
+.eyebrow{ display:inline-flex; align-items:center; gap:9px; font-family:var(--font-display); font-weight:700;
+  font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted);
+  padding:7px 14px; border:1px solid var(--line); border-radius:100px; margin-bottom:22px; }
+.eyebrow .dot{ width:8px; height:8px; border-radius:50%; background:var(--accent); }
+.eyebrow.crit .dot{ background:var(--crit); } .eyebrow.warn .dot{ background:var(--warn); } .eyebrow.ok .dot{ background:var(--ok); }
+.eyebrow .num{ color:var(--ink); opacity:.5; }
+
+h1{ font-family:var(--font-display); font-weight:800; font-size:clamp(34px,4.9vw,58px); line-height:1.08;
+  letter-spacing:-.02em; margin-bottom:26px; max-width:18ch; }
+h1.lead{ max-width:none; }
+.subtitle{ font-size:clamp(19px,1.9vw,24px); color:var(--muted); max-width:60ch; line-height:1.55; }
+p{ font-size:clamp(17px,1.55vw,20px); line-height:1.65; color:var(--ink); margin-bottom:14px; max-width:64ch; }
+p.muted{ color:var(--muted); }
+strong{ color:var(--ink); font-weight:600; }
+em{ color:var(--ok); font-style:normal; font-weight:600; }
+code{ font-family:ui-monospace,'SF Mono',Menlo,monospace; font-size:.86em; background:var(--bg3); color:#9FD0FF;
+  padding:2px 7px; border-radius:6px; border:1px solid var(--line); }
+
+.block{ margin:20px 0; }
+.block .label{ font-family:var(--font-display); font-weight:700; font-size:14px; letter-spacing:.08em;
+  text-transform:uppercase; color:var(--accent); margin-bottom:8px; }
+.block.crit .label{ color:var(--crit); } .block.ok .label{ color:var(--ok); } .block.warn .label{ color:var(--warn); }
+
+ul{ list-style:none; display:grid; gap:11px; margin:6px 0 4px; }
+ul li{ position:relative; padding-left:26px; font-size:clamp(17px,1.55vw,19px); line-height:1.55; color:var(--ink); max-width:64ch; }
+ul li::before{ content:""; position:absolute; left:4px; top:.62em; width:7px; height:7px; border-radius:2px; background:var(--accent); }
+ul.ok li::before{ background:var(--ok); } ul.crit li::before{ background:var(--crit); } ul.warn li::before{ background:var(--warn); }
+
+.cards{ display:grid; grid-template-columns:repeat(2,1fr); gap:16px; margin-top:14px; }
+.card{ background:var(--bg2); border:1px solid var(--line); border-radius:14px; padding:20px 22px; }
+.card h3{ font-family:var(--font-display); font-weight:700; font-size:19px; margin-bottom:8px; display:flex; align-items:center; gap:9px; }
+.card h3::before{ content:""; width:9px; height:9px; border-radius:50%; background:var(--accent); flex:none; }
+.card.crit h3::before{ background:var(--crit); } .card.warn h3::before{ background:var(--warn); } .card.ok h3::before{ background:var(--ok); }
+.card p{ font-size:16px; color:var(--muted); margin:0; max-width:none; }
+.card p em{ display:block; margin-top:8px; color:var(--ok); }
+
+.steps{ display:grid; grid-template-columns:repeat(2,1fr); gap:16px; margin-top:14px; }
+.step{ background:var(--bg2); border:1px solid var(--line); border-radius:14px; padding:18px 20px; }
+.step .n{ font-family:var(--font-display); font-weight:800; font-size:13px; color:var(--accent); letter-spacing:.1em; margin-bottom:10px; }
+.step ul{ gap:7px; } .step ul li{ font-size:15.5px; padding-left:20px; } .step ul li::before{ width:5px; height:5px; top:.6em; }
+
+/* НАВІГАЦІЯ */
+.nav{ position:fixed; bottom:26px; left:0; right:0; z-index:30; display:flex; align-items:center; justify-content:center; gap:18px; }
+.nav button{ width:54px; height:54px; border-radius:50%; background:var(--bg2); border:1px solid var(--line); color:var(--ink);
+  font-size:22px; cursor:pointer; transition:.2s; display:flex; align-items:center; justify-content:center; }
+.nav button:hover:not(:disabled){ background:var(--accent); border-color:var(--accent); color:#06121F; transform:translateY(-2px); }
+.nav button:disabled{ opacity:.3; cursor:not-allowed; }
+.nav button:focus-visible{ outline:2px solid var(--accent); outline-offset:3px; }
+.counter{ font-family:var(--font-display); font-weight:700; font-size:15px; color:var(--muted); min-width:74px; text-align:center; letter-spacing:.08em; }
+.counter b{ color:var(--ink); }
+
+/* СТАРТ */
+.start{ position:fixed; inset:0; z-index:60; background:var(--bg); display:flex; flex-direction:column;
+  align-items:center; justify-content:center; gap:28px; text-align:center; padding:24px; }
+.start h2{ font-family:var(--font-display); font-weight:800; font-size:clamp(26px,4vw,44px); letter-spacing:-.02em; }
+.start p{ color:var(--muted); }
+.start button{ font-family:var(--font-display); font-weight:700; font-size:16px; padding:16px 34px; border-radius:100px;
+  cursor:pointer; background:var(--accent); color:#06121F; border:none; transition:.2s; }
+.start button:hover{ transform:translateY(-2px); box-shadow:0 14px 36px rgba(78,168,255,.4); }
+.hidden{ display:none !important; }
+
+@media (max-width:680px){ .cards,.steps{ grid-template-columns:1fr; } .stage{ padding:84px 6vw 100px; } }
+@media (prefers-reduced-motion:reduce){ .slide{ animation:none; } }
+</style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+
+<div class="topbar">
+  <div class="brand">Bi<span>Trud</span><small>Аудит агента «Катя»</small></div>
+</div>
+
+<!-- ============================================================
+     СЛАЙДИ (5) — текст редагуй прямо тут
+     ============================================================ -->
+<div class="stage">
+
+  <!-- 1 -->
+  <section class="slide active">
+    <span class="eyebrow"><span class="dot"></span>Огляд <span class="num">· 01</span></span>
+    <h1 class="lead">Що таке «Катя»</h1>
+    <p class="subtitle">Катя — AI-агент компанії BiTrud на платформі MyChatBot.</p>
+    <div class="block">
+      <p>Завдання: автоматично приймати кандидатів, підбирати вакансії, збирати контакти та передавати теплого ліда менеджеру.</p>
+      <ul>
+        <li>Працює у 5 каналах: Telegram, Instagram, TikTok, WhatsApp, Facebook Messenger</li>
+        <li>База: <strong>458 вакансій</strong> у країнах Європи</li>
+        <li>Додатково консультує щодо віз, страхування, перевезень та продає B2B-послугу «AI-Менеджер»</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 2 -->
+  <section class="slide">
+    <span class="eyebrow crit"><span class="dot"></span>Критичні проблеми <span class="num">· 02</span></span>
+    <h1>Дві критичні проблеми</h1>
+    <div class="cards">
+      <div class="card crit">
+        <h3>1 · Модель не бачить фото</h3>
+        <p>Кандидати надсилають фото документів (паспорт, права, PESEL) — це передбачено інструкцією. Але модель <code>deepseek-v4-flash</code> не обробляє зображення. У тест-чаті фото паспорта не зчитується, діалог зупиняється.
+        <em>Рішення: змінити модель на <code>gpt-5-mini</code> — підтримує фото, та сама ціна.</em></p>
+      </div>
+      <div class="card crit">
+        <h3>2 · Підбір за статтю не працює</h3>
+        <p>Промпт будує фільтр <code>Стать = "М"</code>, але оператори заповнюють поле вільним текстом: <code>Чоловіки</code>, <code>10 чоловіків</code>, <code>7М/Ж</code>… Точний фільтр їх не розпізнає → кандидату кажуть «вакансій немає».
+        <em>Рішення: нормалізувати таблицю + пошук за частковим збігом замість точного.</em></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 -->
+  <section class="slide">
+    <span class="eyebrow warn"><span class="dot"></span>Системні проблеми <span class="num">· 03</span></span>
+    <h1>Чотири системні прогалини</h1>
+    <div class="cards">
+      <div class="card warn">
+        <h3>Пошкоджені символи в промпті Ролі (5 місць)</h3>
+        <p>Під час копіювання тексту в редактор українські символи побилися — правила обірвалися посередині. Виправлення: вручну, друком (не копіпастом).</p>
+      </div>
+      <div class="card warn">
+        <h3>Статуси та мітки нестабільні</h3>
+        <p>Скіл наказує ставити їх після кожного повідомлення, але у реальних лідів мітки відсутні. Менеджер не бачить «гарячих». Рішення: зміна моделі + посилити скіл.</p>
+      </div>
+      <div class="card warn">
+        <h3>Instagram: 2 пости зі 100</h3>
+        <p>Автовідповідь моніторить лише 2 публікації. Ліди з решти постів не підхоплюються. Рішення: додати активні пости в налаштуваннях.</p>
+      </div>
+      <div class="card warn">
+        <h3>Сміття в промпті</h3>
+        <p>Залишилися посилання на неіснуючий розділ «Course Search Rules» від шаблону бота онлайн-школи. Видалити.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 -->
+  <section class="slide">
+    <span class="eyebrow"><span class="dot"></span>Додаткові зміни <span class="num">· 04</span></span>
+    <h1>Додаткові зміни</h1>
+    <div class="cards">
+      <div class="card">
+        <h3>1 · Картка при передачі оператору</h3>
+        <p>При передачі ліда менеджеру Катя одразу формує готову картку (ім'я, інтерес, країна, вакансія, документи, контакт) — менеджер бачить все одразу, не починає діалог з нуля.</p>
+      </div>
+      <div class="card">
+        <h3>2 · Голосовий обдзвін теплих лідів</h3>
+        <p>Канал дзвінків уже налаштований (SIP + модель gpt-5.2). Використати для обдзвону теплих лідів, які застрягли у воронці.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 -->
+  <section class="slide">
+    <span class="eyebrow"><span class="dot"></span>Рефакторинг <span class="num">· 05</span></span>
+    <h1>Полегшення промпта Каті</h1>
+    <p class="muted">Поточний промпт — 331 рядок, це забагато для слабкої моделі. У Каті вже є 4 скіли, але частина важкої логіки досі лежить у Ролі — її теж треба винести.</p>
+    <div class="cards" style="margin-top:18px">
+      <div class="card">
+        <h3>Скіл «Календар та бронювання»</h3>
+        <p>Блок запису на Zoom (слоти Пн/Ср/Пт, check_availability). Вантажиться в кожному діалозі про роботу — хоча потрібен лише для B2B. (~34 рядки)</p>
+      </div>
+      <div class="card">
+        <h3>Скіл «Ціни по працевлаштуванню»</h3>
+        <p>Блок про оплату працевлаштування (безкоштовна Польща, 150€ A1 для Німеччини) та відповіді на цінові заперечення. Треба винести у скіл, щоб не вантажити Роль.</p>
+      </div>
+      <div class="card">
+        <h3>Скіл «Визначення статі та мови»</h3>
+        <p>Логіка визначення статі за іменем + адаптація граматичного роду у відповідях. (~22 рядки)</p>
+      </div>
+      <div class="card ok">
+        <h3>Видалити з промпта</h3>
+        <p>Контакти → у FAQ-базу. Дублі привітань (×3). Посилання на «Course Search».</p>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<div class="nav">
+  <button id="prev" aria-label="Назад">‹</button>
+  <div class="counter"><b id="cur">01</b> / <span id="total">05</span></div>
+  <button id="next" aria-label="Далі">›</button>
+</div>
+
+<div class="start" id="start">
+  <h2>Аудит агента «Катя»</h2>
+  <p>Натисніть, щоб почати.<br>Гортайте стрілками ← → або кнопками внизу.</p>
+  <button id="startBtn">▶ Почати презентацію</button>
+</div>
+
+<script>
+/* Ручна навігація між слайдами */
+const slides = document.querySelectorAll('.slide');
+const total  = slides.length;
+let i = 0;
+
+document.getElementById('total').textContent = String(total).padStart(2,'0');
+
+function show(n){
+  i = Math.max(0, Math.min(total-1, n));
+  slides.forEach((s,idx)=> s.classList.toggle('active', idx===i));
+  document.getElementById('cur').textContent = String(i+1).padStart(2,'0');
+  document.getElementById('progress').style.width = ((i+1)/total*100)+'%';
+  document.getElementById('prev').disabled = (i===0);
+  document.getElementById('next').disabled = (i===total-1);
+}
+document.getElementById('next').addEventListener('click', ()=> show(i+1));
+document.getElementById('prev').addEventListener('click', ()=> show(i-1));
+document.addEventListener('keydown', e=>{
+  if(!document.getElementById('start').classList.contains('hidden')) return;
+  if(e.key==='ArrowRight' || e.key===' '){ e.preventDefault(); show(i+1); }
+  if(e.key==='ArrowLeft'){ e.preventDefault(); show(i-1); }
+});
+document.getElementById('startBtn').addEventListener('click', ()=>{
+  document.getElementById('start').classList.add('hidden');
+  show(0);
+});
+</script>
+</body>
+</html>
